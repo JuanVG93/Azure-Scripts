@@ -1,23 +1,3 @@
-Function LogonAAD {
-	#Checking if there's a session active in AzureAD, if no active session then it will log you in
-    Write-Host "Checking if you're currently signed into AzureAD" -Foregroundcolor Yellow
-	
-    if($azureConnection.Account -eq $null) 
-    {
-        Write-Host "You're currently not signed into AzureAD" -Foregroundcolor Red
-        $AdminUser = whoami /upn
-        $AzureConnection1 = Connect-AzAccount -Account $AdminUser
-		$AzureConnection2 = Connect-AzureAD -AccountId $AdminUser
-        $ObjectId = (Get-AzureADUser -ObjectId $AdminUser).ObjectId
-        Write-Host "You are now signed into AzureAD! Welcome back $AdminUser" -Foregroundcolor Green
-		
-	}
-		
-	else {
-		Write-Host "You're already signed into AzureAD!" -Foregroundcolor Green
-	}
-}
-
 Function Main {
 	
 	try {
@@ -111,12 +91,6 @@ Function Subscription_Permissions {
 			Where-Object {($_.ObjectId -in $NotRoleAssignable.Id -and ($_.RoleDefinitionName -like "*Owner") -or ($_.ObjectId -in $NotRoleAssignable.Id -and $_.RoleDefinitionName -like "*Administrator") -or ($_.ObjectId -in $NotRoleAssignable.Id -and$_.RoleDefinitionName -like "*Contributor"))}
 			
 			ForEach ($RoleAssignment in $RoleAssignments) {
-				
-				<# $RoleAssignment | 
-				Select-Object @{ Name = "AAD Group" ; Expression = { $GroupId.Name }},
-				@{ Name = "Role" ; Expression = { $GroupId.RoleDefinitionName }},
-				@{ Name = "ObjectType" ; Expression = { $GroupId.ObjectType }},
-				@{ Name = "CanDelegate" ; Expression = { $GroupId.CanDelegate }} #>
 				
 				Write-Output $RoleAssignment
 			
