@@ -115,7 +115,6 @@ Function Subscription_Permissions {
 	
 }
 
-LogonAAD
 Main
 RBAC_Groups
 Write-Host "Done!" -Foregroundcolor Green
