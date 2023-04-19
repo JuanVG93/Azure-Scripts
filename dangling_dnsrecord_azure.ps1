@@ -7,10 +7,10 @@ Function Get-SubscriptionIds {
 
     )
 
-    # Cache all Active Subscriptions
+    	# Cache all Active Subscriptions
 	$SubscriptionIds = (Get-AzSubscription | Where-Object {$_.State -eq "Enabled"})
 
-    # Count Active Subscriptions
+    	# Count Active Subscriptions
 	$TotalSubscriptions = $SubscriptionIds.Count
 	Write-Host "[INFO] $TotalSubscriptions Active Subscriptions found..." -Foregroundcolor Gray
 
@@ -53,7 +53,7 @@ Function Get-SubscriptionIds {
     
     catch {
 
-        Write-Host "`nError Message: " $_.Exception.Message -ForegroundColor Red
+        	Write-Host "`nError Message: " $_.Exception.Message -ForegroundColor Red
 		Write-Host "`nError in Line: " $_.InvocationInfo.Line -ForegroundColor Red
 		Write-Host "`nError in Line Number: "$_.InvocationInfo.ScriptLineNumber -ForegroundColor Red
 		Write-Host "`nError Item Name: "$_.Exception.ItemName -ForegroundColor Red
