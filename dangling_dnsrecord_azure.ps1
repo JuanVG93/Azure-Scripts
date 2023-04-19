@@ -152,7 +152,7 @@ Function Get-DNSRecordsAzure {
 
     catch {
 
-        Write-Host "`nError Message: " $_.Exception.Message -ForegroundColor Red
+        	Write-Host "`nError Message: " $_.Exception.Message -ForegroundColor Red
 		Write-Host "`nError in Line: " $_.InvocationInfo.Line -ForegroundColor Red
 		Write-Host "`nError in Line Number: "$_.InvocationInfo.ScriptLineNumber -ForegroundColor Red
 		Write-Host "`nError Item Name: "$_.Exception.ItemName -ForegroundColor Red
@@ -194,7 +194,7 @@ Function Get-DnsResolution {
 
     catch {
 
-        Write-Host "`nError Message: " $_.Exception.Message -ForegroundColor Red
+        	Write-Host "`nError Message: " $_.Exception.Message -ForegroundColor Red
 		Write-Host "`nError in Line: " $_.InvocationInfo.Line -ForegroundColor Red
 		Write-Host "`nError in Line Number: "$_.InvocationInfo.ScriptLineNumber -ForegroundColor Red
 		Write-Host "`nError Item Name: "$_.Exception.ItemName -ForegroundColor Red
