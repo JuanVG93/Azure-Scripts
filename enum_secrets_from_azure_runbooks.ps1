@@ -319,8 +319,7 @@ if ($Path -eq $null) {
 else {
 
     $Path = $Path + "\potentially_leaked_secrets_in_azurerunbooks.csv"
-
-    LogonAAD
+    
     Main
 
 }
