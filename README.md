@@ -44,3 +44,18 @@ This can be usefull for reviews of role assignments when trying to ascertain if 
 2. Log into Azure AD through PowerShell
 3. Run this script
 4. Supply the information when prompted
+
+---
+
+## Enumerate secrets from Azure Runbooks
+
+### What does it do?
+This PowerShell script will export all "Published" and "In Edit" PowerShell Runbooks across all Subscriptions to local storage.
+It will then read each runbook line by line to look for potentially exposed Client Secrets.
+This can be useful for DevSecOps teams.
+
+### How do I run this?
+1. Clone this repo
+2. Log into Azure AD through PowerShell
+3. Run this script
+4. Supply the information when prompted
