@@ -50,7 +50,7 @@ This can be usefull for reviews of role assignments when trying to ascertain if 
 ## Enumerate secrets from Azure Runbooks
 
 ### What does it do?
-This PowerShell script will export all "Published" and "In Edit" PowerShell Runbooks across all Subscriptions to local storage.
+This PowerShell script will export all "Published" and "In Edit" PowerShell Runbooks across all active Subscriptions to local storage.
 It will then read each runbook line by line to look for potentially exposed Client Secrets.
 This can be useful for DevSecOps teams.
 
