@@ -243,10 +243,10 @@ Function Get-SecretsFromRunbook {
 
         ForEach ($Script in $Scripts) {
 
-            # This variable keeps track of the line number where the potential secret is exposed
-            $LineNumber = 0
-
             foreach ($Key in $RegexPattern.Keys) {
+
+                # This variable keeps track of the line number where the potential secret is exposed
+                $LineNumber = 0
 
                 # Reach each script line by line
                 $Found = @(ForEach ($Line in Get-Content $Script) {
