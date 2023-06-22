@@ -224,11 +224,11 @@ Function Get-SecretsFromRunbook {
     $RegexPattern["['\""]([a-z0-9_\-~.]{25,40})['\""]"] = "Azure Client Secret"
 
     # This is a regex pattern array for excluding certain strings such as tenantid/objectid
-    $ExcludeRegexPattern = @(
+    # $ExcludeRegexPattern = @(
 
-        "['\""][0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}['\""]"
+    #     "['\""][0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}['\""]"
 
-    )
+    # )
 
     $Scripts = (Get-ChildItem $ScriptPath -Recurse -Include "*.ps1").FullName
 
@@ -239,42 +239,51 @@ Function Get-SecretsFromRunbook {
             # This variable keeps track of the line number where the potential secret is exposed
             $LineNumber = 0
 
-            # Reach each script line by line
-            $Found = @(ForEach ($Line in Get-Content $Script) {
+            foreach ($Key in $RegexPattern.Keys) {
 
-                # Keep track of which linenumber is currently being read
-                $LineNumber++
+                # Reach each script line by line
+                $Found = @(ForEach ($Line in Get-Content $Script) {
 
-                # Check if the line matches the supplied RegEx patterns
-                if ($Line -cnotmatch $ExcludeRegexPattern -and $Line -match $RegexPattern) {
+                    # Keep track of which linenumber is currently being read
+                    $LineNumber++
 
-                    # Split all folders so that we can assign separate variables
-                    $Folders = Split-Path -Path $Script -Parent
+                    # Check if the line matches the supplied RegEx patterns
+                    if ($Line -match $Key) {
 
-                    # AzureRunBook excluding .ps1
-                    $AzureRunbook = Split-Path -Path $Script -Leaf
+                        # A match has been found
+                        $MatchedString = $RegexPattern[$Key]
 
-                    # Get the Azure Runbook name
-                    $Subfolders = $Script.Split("\") | Select-Object -skip 2
+                        # Split all folders so that we can assign separate variables
+                        $Folders = Split-Path -Path $Script -Parent
 
-                    # Take the Azure Runbook name and remove the extension
-                    $AzureRunbook = [System.IO.Path]::GetFileNameWithoutExtension($Script)
+                        # AzureRunBook excluding .ps1
+                        $AzureRunbook = Split-Path -Path $Script -Leaf
 
-                    # Create a new array called Output and add the below properties
-                    $Output += New-object PSObject -property @{
+                        # Get the Azure Runbook name
+                        $Subfolders = $Script.Split("\") | Select-Object -skip 2
 
-                        Workload = ($Subfolders[1] | Out-String).Trim()
-                        AutomationAccountName = ($Subfolders[2] | Out-String).Trim()
-                        ResourceGroupName = ($Subfolders[3]| Out-String).Trim()
-                        AzureRunbook = ($AzureRunbook | Out-String).Trim()
-                        SecretType = ($RegexPattern[$Script]).Trim()
-                        PotentialSecret = ($Line | Out-String).Trim()
-                        LineNumber = ($LineNumber | Out-String).Trim()
+                        # Take the Azure Runbook name and remove the extension
+                        $AzureRunbook = [System.IO.Path]::GetFileNameWithoutExtension($Script)
+
+                        # Create a new array called Output and add the below properties
+                        $Output += New-object PSObject -property @{
+
+                            Workload = ($Subfolders[1] | Out-String).Trim()
+                            AutomationAccountName = ($Subfolders[2] | Out-String).Trim()
+                            ResourceGroupName = ($Subfolders[3]| Out-String).Trim()
+                            AzureRunbook = ($AzureRunbook | Out-String).Trim()
+                            SecretType = ($MatchedString).Trim()
+                            LineNumber = ($LineNumber | Out-String).Trim()
+                            PotentialSecret = ($Line | Out-String).Trim()
+
+                        }
 
                     }
 
-                }
-            })
+                })
+
+            }
+            
 
             # Output the array
             if ($?) {
