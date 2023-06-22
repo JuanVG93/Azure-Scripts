@@ -228,7 +228,8 @@ Function Get-SecretsFromRunbook {
     $RegexPattern["linkedin(.{0,20})?['""][0-9a-z]{16}['""]"] = "LinkedIn Secret Key"
 
     # The following regex pattern was written based on https://learn.microsoft.com/en-us/microsoft-365/compliance/sit-defn-azure-ad-client-secret?view=o365-worldwide#pattern
-    $RegexPattern["['\""]([a-z0-9_\-~.]{25,40})['\""]"] = "Azure Client Secret"
+    #$RegexPattern["['\""]([a-z0-9_\-~.]{25,40})['\""]"] = "Azure Client Secret"
+    $RegexPattern["['""]([a-zA-Z0-9_\-~.]{25,40})['""]"] = "Azure Client Secret"
 
     # This is a regex pattern array for excluding certain strings such as tenantid/objectid
     # $ExcludeRegexPattern = @(
