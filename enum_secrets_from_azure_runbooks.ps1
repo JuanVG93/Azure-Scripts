@@ -219,6 +219,13 @@ Function Get-SecretsFromRunbook {
     $RegexPattern["ghp_[0-9a-zA-Z]{36}"] = "Github Personal Access Token"
     $RegexPattern["(ghu|ghs)_[0-9a-zA-Z]{36}"] = "Github App Token"
     $RegexPattern["glpat-[0-9a-zA-Z\-]{20}"] = "Gitlab Personal Access Token"
+    $RegexPattern["(access_key|access_token|admin_pass|admin_user|algolia_admin_key|algolia_api_key|alias_pass|alicloud_access_key| amazon_secret_access_key|amazonaws|ansible_vault_password|aos_key|api_key|api_key_secret|api_key_sid|api_secret| api.googlemaps AIza|apidocs|apikey|apiSecret|app_debug|app_id|app_key|app_log_level|app_secret|appkey|appkeysecret| application_key|appsecret|appspot|auth_token|authorizationToken|authsecret|aws_access|aws_access_key_id|aws_bucket| aws_key|aws_secret|aws_secret_key|aws_token|AWSSecretKey|b2_app_key|bashrc password| bintray_apikey|bintray_gpg_password|bintray_key|bintraykey|bluemix_api_key|bluemix_pass|browserstack_access_key| bucket_password|bucketeer_aws_access_key_id|bucketeer_aws_secret_access_key|built_branch_deploy_key|bx_password|cache_driver| cache_s3_secret_key|cattle_access_key|cattle_secret_key|certificate_password|ci_deploy_password|client_secret| client_zpk_secret_key|clojars_password|cloud_api_key|cloud_watch_aws_access_key|cloudant_password| cloudflare_api_key|cloudflare_auth_key|cloudinary_api_secret|cloudinary_name|codecov_token|conn.login| connectionstring|consumer_key|consumer_secret|credentials|cypress_record_key|database_password|database_schema_test| datadog_api_key|datadog_app_key|db_password|db_server|db_username|dbpasswd|dbpassword|dbuser|deploy_password| digitalocean_ssh_key_body|digitalocean_ssh_key_ids|docker_hub_password|docker_key|docker_pass|docker_passwd| docker_password|dockerhub_password|dockerhubpassword|dot-files|dotfiles|droplet_travis_password|dynamoaccesskeyid| dynamosecretaccesskey|elastica_host|elastica_port|elasticsearch_password|encryption_key|encryption_password| env.heroku_api_key|env.sonatype_password|eureka.awssecretkey)[a-z0-9_ .,<\-]{0,25}(=|>|:=|\|\|:|<=|=>|:).{0,5}['"]([0-9a-zA-Z_=\-]{8,64})['"]"] = "Generic API Token"
+    $RegexPattern["((bitbucket[a-z0-9_ \.,\-]{0,25})(=|>|:=|\|\|:|<=|=>|:).{0,5}['""]([a-z0-9_\-]{64})['""])"] = "Bitbucket Client Secret"
+    $RegexPattern["dapi[a-h0-9]{32}"] = "DataBricks API Key"
+    $RegexPattern["AIza[0-9A-Za-z_\-]{35}"] = "Google API Key"
+    $RegexPattern["[a-z0-9]{14}\.atlasv1\.[a-z0-9_=\-]{60,70}"] = "Hashicorp Terraform user/org API Key"
+    $RegexPattern["<[a-zA-Z]*>{[a-zA-Z0-9=+/]*}<"] = "Jenkins Creds"
+    $RegexPattern["linkedin(.{0,20})?['""][0-9a-z]{16}['""]"] = "LinkedIn Secret Key"
 
     # The following regex pattern was written based on https://learn.microsoft.com/en-us/microsoft-365/compliance/sit-defn-azure-ad-client-secret?view=o365-worldwide#pattern
     $RegexPattern["['\""]([a-z0-9_\-~.]{25,40})['\""]"] = "Azure Client Secret"
@@ -283,7 +290,7 @@ Function Get-SecretsFromRunbook {
                 })
 
             }
-            
+
 
             # Output the array
             if ($?) {
