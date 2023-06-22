@@ -191,8 +191,38 @@ Function Get-SecretsFromRunbook {
     # The path where all the Azure Runbooks are stored in a separate folder for each Resource Group
     $ScriptPath = "C:\temp\Azure Runbooks"
 
-    # This is the regex pattern for Azure AD Secrets documented on https://learn.microsoft.com/en-us/microsoft-365/compliance/sit-defn-azure-ad-client-secret?view=o365-worldwide#pattern
-    $RegexPattern = "['\""]([a-z0-9_\-~.]{25,40})['\""]"
+    # This hashtable contains all known regex patterns for common secrets
+    $RegexPattern = @{}
+
+    # The following regex patterns come from https://jaimepolop.github.io/RExpository/
+
+    #Hashed Passwords
+    $RegexPattern["\$apr1\$[a-zA-Z0-9_/\.]{8}\$[a-zA-Z0-9_/\.]{22}"] = "Hashed Password Apr1 MD5"
+    $RegexPattern["\{SHA\}[0-9a-zA-Z/_=]{10,}"] = "Hashed Password Apache SHA"
+    $RegexPattern["\$2[abxyz]?\$[0-9]{2}\$[a-zA-Z0-9_/\.]*"] = "Hashed Password Blowfish"
+    $RegexPattern["\$S\$[a-zA-Z0-9_/\.]{52}"] = "Hashed Password Drupal"
+    $RegexPattern["[0-9a-zA-Z]{32}:[a-zA-Z0-9_]{16,32}"] = "Hashed Password Joomlavbulletin"
+    $RegexPattern["\$1\$[a-zA-Z0-9_/\.]{8}\$[a-zA-Z0-9_/\.]{22}"] = "Hashed Password Linux MD5"
+    $RegexPattern["\$H\$[a-zA-Z0-9_/\.]{31}"] = "Hashed Password phpbb3"
+    $RegexPattern["\$6\$[a-zA-Z0-9_/\.]{16}\$[a-zA-Z0-9_/\.]{86}"] = "Hashed Password sha512crypt"
+    $RegexPattern["\$P\$[a-zA-Z0-9_/\.]{31}"] = "Hashed Password Wordpress"
+
+    #Raw Hashes
+    $RegexPattern["(^|[^a-zA-Z0-9])[a-fA-F0-9]{128}([^a-zA-Z0-9]|$)"] = "Raw Hash sha512"
+
+    #API Keys
+    $RegexPattern["(atlassian[a-z0-9_ \.,\-]{0,25})(=|>|:=|\|\|:|<=|=>|:).{0,5}['""]([a-z0-9]{24})['""]"] = "Atlassian API Key"
+    $RegexPattern["amzn\.mws\.[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}"] = "AWS MWS Key"
+    $RegexPattern["aws(.{0,20})?['""][0-9a-zA-Z\/+]{40}['""]"] = "AWS Secret Key"
+    $RegexPattern["xox[baprs]-([0-9a-zA-Z]{10,48})?"] = "Slack Token"
+    $RegexPattern["gho_[0-9a-zA-Z]{36}"] = "Github Oauth Access Token"
+    $RegexPattern["ghp_[0-9a-zA-Z]{36}"] = "Github Personal Access Token"
+    $RegexPattern["(ghu|ghs)_[0-9a-zA-Z]{36}"] = "Github App Token"
+    $RegexPattern["glpat-[0-9a-zA-Z\-]{20}"] = "Gitlab Personal Access Token"
+
+    # The following regex pattern was written based on https://learn.microsoft.com/en-us/microsoft-365/compliance/sit-defn-azure-ad-client-secret?view=o365-worldwide#pattern
+    $RegexPattern["['\""]([a-z0-9_\-~.]{25,40})['\""]"] = "Azure Client Secret"
+
     # This is a regex pattern array for excluding certain strings such as tenantid/objectid
     $ExcludeRegexPattern = @(
 
@@ -211,10 +241,10 @@ Function Get-SecretsFromRunbook {
 
             # Reach each script line by line
             $Found = @(ForEach ($Line in Get-Content $Script) {
-    
+
                 # Keep track of which linenumber is currently being read
                 $LineNumber++
-    
+
                 # Check if the line matches the supplied RegEx patterns
                 if ($Line -cnotmatch $ExcludeRegexPattern -and $Line -match $RegexPattern) {
 
@@ -223,25 +253,26 @@ Function Get-SecretsFromRunbook {
 
                     # AzureRunBook excluding .ps1
                     $AzureRunbook = Split-Path -Path $Script -Leaf
-                    
+
                     # Get the Azure Runbook name
                     $Subfolders = $Script.Split("\") | Select-Object -skip 2
 
                     # Take the Azure Runbook name and remove the extension
                     $AzureRunbook = [System.IO.Path]::GetFileNameWithoutExtension($Script)
-    
+
                     # Create a new array called Output and add the below properties
                     $Output += New-object PSObject -property @{
-                    
+
                         Workload = ($Subfolders[1] | Out-String).Trim()
                         AutomationAccountName = ($Subfolders[2] | Out-String).Trim()
                         ResourceGroupName = ($Subfolders[3]| Out-String).Trim()
                         AzureRunbook = ($AzureRunbook | Out-String).Trim()
+                        SecretType = ($RegexPattern[$Script]).Trim()
                         PotentialSecret = ($Line | Out-String).Trim()
                         LineNumber = ($LineNumber | Out-String).Trim()
-    
+
                     }
-    
+
                 }
             })
 
@@ -249,7 +280,7 @@ Function Get-SecretsFromRunbook {
             if ($?) {
 
                 Write-Output $Output |
-                Select-Object Workload, AutomationAccountName, ResourceGroupName, AzureRunbook, LineNumber, PotentialSecret
+                Select-Object Workload, AutomationAccountName, ResourceGroupName, AzureRunbook, SecretType, LineNumber, PotentialSecret
 
             }
 
@@ -261,12 +292,12 @@ Function Get-SecretsFromRunbook {
                 Write-Host "[INFO] $Script deleted" -ForegroundColor Red
 
             }
-    
+
         }
 
         Write-Host "[INFO] Cleaning up files" -ForegroundColor Yellow
         Remove-Item -Path $ScriptPath -Recurse
-        
+
     }
 
     catch {
