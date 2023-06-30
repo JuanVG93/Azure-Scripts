@@ -229,7 +229,7 @@ Function Get-SecretsFromRunbook {
     $RegexPattern["linkedin(.{0,20})?['""][0-9a-z]{16}['""]"] = "LinkedIn Secret Key"
 
     # The following regex pattern was written based on https://learn.microsoft.com/en-us/microsoft-365/compliance/sit-defn-azure-ad-client-secret?view=o365-worldwide#pattern
-    $RegexPattern["['\""](^[a-zA-Z0-9_\-~.]{40}$)['\""]"] = "Azure Client Secret"
+    $RegexPattern["['\""]([a-zA-Z0-9_\-~.]{40})['\""]"] = "Azure Client Secret"
 
     $Scripts = (Get-ChildItem $ScriptPath -Recurse -Include "*.ps1").FullName
 
@@ -288,8 +288,8 @@ Function Get-SecretsFromRunbook {
             Write-Output $Output |
             Select-Object Workload, AutomationAccountName, ResourceGroupName, AzureRunbook, SecretType, LineNumber, PotentialSecret
 
-            # Write-Host "[INFO] Cleaning up files" -ForegroundColor Yellow
-            # Remove-Item -Path $ScriptPath -Recurse
+            Write-Host "[INFO] Cleaning up files" -ForegroundColor Yellow
+            Remove-Item -Path $ScriptPath -Recurse
 
         }
 
