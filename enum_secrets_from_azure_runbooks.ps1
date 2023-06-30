@@ -209,6 +209,7 @@ Function Get-SecretsFromRunbook {
 
     #Raw Hashes
     $RegexPattern["(^|[^a-zA-Z0-9])[a-fA-F0-9]{128}([^a-zA-Z0-9]|$)"] = "Raw Hash sha512"
+    $RegexPattern["['\""](\b[0-9A-Fa-f]{40}\b)['\""]"] = "Certificate Thumbprint"
 
     #API Keys
     $RegexPattern["(atlassian[a-z0-9_ \.,\-]{0,25})(=|>|:=|\|\|:|<=|=>|:).{0,5}['""]([a-z0-9]{24})['""]"] = "Atlassian API Key"
@@ -228,7 +229,7 @@ Function Get-SecretsFromRunbook {
     $RegexPattern["linkedin(.{0,20})?['""][0-9a-z]{16}['""]"] = "LinkedIn Secret Key"
 
     # The following regex pattern was written based on https://learn.microsoft.com/en-us/microsoft-365/compliance/sit-defn-azure-ad-client-secret?view=o365-worldwide#pattern
-    $RegexPattern["['\""]([a-z0-9_\-~.]{25,40})['\""]"] = "Azure Client Secret"
+    $RegexPattern["['\""](^[a-zA-Z0-9_\-~.]{40}$)['\""]"] = "Azure Client Secret"
 
     $Scripts = (Get-ChildItem $ScriptPath -Recurse -Include "*.ps1").FullName
 
@@ -236,78 +237,61 @@ Function Get-SecretsFromRunbook {
 
         ForEach ($Script in $Scripts) {
 
-            foreach ($Key in $RegexPattern.Keys) {
-
                 # This variable keeps track of the line number where the potential secret is exposed
                 $LineNumber = 0
 
                 # Reach each script line by line
-                $Found = @(ForEach ($Line in Get-Content $Script) {
+                ForEach ($Line in Get-Content $Script) {
 
                     # Keep track of which linenumber is currently being read
                     $LineNumber++
 
-                    # Check if the line matches the supplied RegEx patterns
-                    if ($Line -match $Key) {
+                    foreach ($Key in $RegexPattern.Keys) {
 
-                        # A match has been found
-                        $MatchedString = $RegexPattern[$Key]
+                        # Check if the line matches the supplied RegEx patterns
+                        if ($Line -match $Key) {
 
-                        # Split all folders so that we can assign separate variables
-                        $Folders = Split-Path -Path $Script -Parent
+                            # A match has been found
+                            $MatchedString = $RegexPattern[$Key]
 
-                        # AzureRunBook excluding .ps1
-                        $AzureRunbook = Split-Path -Path $Script -Leaf
+                            # AzureRunBook excluding .ps1
+                            $AzureRunbook = Split-Path -Path $Script -Leaf
 
-                        # Get the Azure Runbook name
-                        $Subfolders = $Script.Split("\") | Select-Object -skip 2
+                            # Get the Azure Runbook name
+                            $Subfolders = $Script.Split("\") | Select-Object -skip 2
 
-                        # Take the Azure Runbook name and remove the extension
-                        $AzureRunbook = [System.IO.Path]::GetFileNameWithoutExtension($Script)
+                            # Take the Azure Runbook name and remove the extension
+                            $AzureRunbook = [System.IO.Path]::GetFileNameWithoutExtension($Script)
 
-                        # Create a new array called Output and add the below properties
-                        $Output += New-object PSObject -property @{
+                            # Create a new array called Output and add the below properties
+                            $Output += New-object PSObject -property @{
 
-                            Workload = ($Subfolders[1] | Out-String).Trim()
-                            AutomationAccountName = ($Subfolders[2] | Out-String).Trim()
-                            ResourceGroupName = ($Subfolders[3]| Out-String).Trim()
-                            AzureRunbook = ($AzureRunbook | Out-String).Trim()
-                            SecretType = ($MatchedString).Trim()
-                            LineNumber = ($LineNumber | Out-String).Trim()
-                            PotentialSecret = ($Line | Out-String).Trim()
+                                Workload = ($Subfolders[1] | Out-String).Trim()
+                                AutomationAccountName = ($Subfolders[2] | Out-String).Trim()
+                                ResourceGroupName = ($Subfolders[3]| Out-String).Trim()
+                                AzureRunbook = ($AzureRunbook | Out-String).Trim()
+                                SecretType = ($MatchedString).Trim()
+                                LineNumber = ($LineNumber | Out-String).Trim()
+                                PotentialSecret = ($Line | Out-String).Trim()
+
+                            }
 
                         }
 
                     }
 
-                })
+                }
 
             }
-
 
             # Output the array
-            if ($Found) {
+            Write-Output $Output |
+            Select-Object Workload, AutomationAccountName, ResourceGroupName, AzureRunbook, SecretType, LineNumber, PotentialSecret
 
-                Write-Output $Output |
-                Select-Object Workload, AutomationAccountName, ResourceGroupName, AzureRunbook, SecretType, LineNumber, PotentialSecret
-
-            }
-
-            # Remove unneeded files
-            else {
-
-                Write-Host "[INFO] No matches found for the supplied RegEx pattern, deleting $($Script)" -ForegroundColor Yellow
-                Remove-Item $Script
-                Write-Host "[INFO] $Script deleted" -ForegroundColor Red
-
-            }
+            # Write-Host "[INFO] Cleaning up files" -ForegroundColor Yellow
+            # Remove-Item -Path $ScriptPath -Recurse
 
         }
-
-        Write-Host "[INFO] Cleaning up files" -ForegroundColor Yellow
-        Remove-Item -Path $ScriptPath -Recurse
-
-    }
 
     catch {
 
@@ -320,27 +304,44 @@ Function Get-SecretsFromRunbook {
 
 }
 
+
 Function Main {
 
     Write-Host "[INFO] This PowerShell script will attempt to enumerate Azure AD Client Secrets from Azure Runbooks across all active subscriptions" -ForegroundColor Yellow
     Write-Host "[INFO] No Key Vaults will be accessed!" -ForegroundColor Yellow
 
     # Cycling through subscriptionId's
-    Get-SubscriptionIds
+    #Get-SubscriptionIds
 
     Write-Host "`n==========================================================="
     Write-Host "`n[INFO] Finished downloading all Azure Runbooks!" -ForegroundColor Green
 
     # Searching for potential secrets in Azure Runbooks
     Write-Host "[INFO] Searching for potential secrets in all Azure Runbooks" -ForegroundColor Yellow
-    Get-SecretsFromRunbook -ResourceGroupName $ResourceGroupName -AutomationAccountName $AutomationAccountName -AzureRunbook $AzureRunbook -SubscriptionName $SubscriptionName |
-    Export-Csv -Path $Path -NoTypeInformation -Encoding utf8
-    Write-Host "`n[INFO] Finished checking all Azure Runbooks!" -ForegroundColor Green
 
+    $Results = Get-SecretsFromRunbook
+
+    # When there are no results the script should create an empty .csv file with headers only
+    if (!$Results) {
+
+        '' |
+        Select-Object 'Workload', 'AutomationAccountName', 'ResourceGroupName', 'AzureRunbook', 'SecretType', 'LineNumber', 'PotentialSecret' |
+        Export-Csv -Path $Path -NoTypeInformation -Encoding utf8
+
+    }
+
+    # Export the results to a .csv file
+    else {
+
+        $Results |
+        Export-Csv -Path $Path -NoTypeInformation -Encoding utf8
+
+    }
+   
+    Write-Host "`n[INFO] Finished checking all Azure Runbooks!" -ForegroundColor Green
     Write-Host "[INFO] File written to $Path" -ForegroundColor Yellow
     Write-Host "[INFO] Please review the report as this may contain false positives" -ForegroundColor Yellow
     Write-Host "[INFO] Script finished" -ForegroundColor Green
-
 
 }
 
@@ -348,7 +349,7 @@ Function Main {
 $Path = $args[0]
 
 # Check to ensure the argument is supplied
-if ($Path -eq $null) {
+if ($null -eq $Path) {
 
     throw [System.ArgumentException] "You have not supplied a path where you want the report to be saved!`nCall the script again and include the full UNC path in single quotes"
 
@@ -358,7 +359,8 @@ if ($Path -eq $null) {
 else {
 
     $Path = $Path + "\potentially_leaked_secrets_in_azurerunbooks.csv"
-    
+
+    LogonAAD
     Main
 
 }
